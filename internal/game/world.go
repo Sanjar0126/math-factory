@@ -76,8 +76,20 @@ func (w *World) Update() {
 }
 
 func (w *World) Draw(screen *ebiten.Image, camera *Camera) {
+	transform := camera.GetTransform()
+
 	w.drawGrid(screen, camera)
 	w.drawOrigin(screen, camera)
+
+	for _, building := range w.Buildings {
+		building.Draw(screen, -camera.X+float64(camera.screenWidth)/(2*camera.Zoom),
+			-camera.Y+float64(camera.screenHeight)/(2*camera.Zoom), camera.Zoom)
+	}
+
+	for _, number := range w.Numbers {
+		number.Draw(screen, -camera.X+float64(camera.screenWidth)/(2*camera.Zoom),
+			-camera.Y+float64(camera.screenHeight)/(2*camera.Zoom), camera.Zoom)
+	}
 }
 
 func (w *World) drawGrid(screen *ebiten.Image, camera *Camera) {
