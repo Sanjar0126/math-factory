@@ -76,7 +76,7 @@ func (w *World) Update() {
 }
 
 func (w *World) Draw(screen *ebiten.Image, camera *Camera) {
-	transform := camera.GetTransform()
+	// transform := camera.GetTransform()
 
 	w.drawGrid(screen, camera)
 	w.drawOrigin(screen, camera)
@@ -128,4 +128,12 @@ func (w *World) drawOrigin(screen *ebiten.Image, camera *Camera) {
 		1, color.RGBA{255, 0, 0, 255}, false)
 	vector.StrokeLine(screen, float32(screenX), float32(screenY-10), float32(screenX), float32(screenY+10),
 		1, color.RGBA{255, 0, 0, 255}, false)
+}
+
+func (w *World) GetNumberCount() int {
+	return len(w.Numbers)
+}
+
+func (w *World) GetCoreStoredCount() int {
+	return w.Core.GetStoredCount()
 }
