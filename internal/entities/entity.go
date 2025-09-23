@@ -16,3 +16,10 @@ type BaseEntity struct {
 	Width, Height float64
 }
 
+func (e *BaseEntity) GetPosition() (float64, float64) {
+	return e.X, e.Y
+}
+
+func (e *BaseEntity) GetSize() (float64, float64) {
+	return e.Width, e.Height
+}
