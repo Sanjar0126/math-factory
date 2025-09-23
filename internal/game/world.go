@@ -3,6 +3,7 @@ package game
 import (
 	"image/color"
 
+	"github.com/Sanjar0126/math-factory/internal/entities"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -13,15 +14,17 @@ const (
 )
 
 type World struct {
+	Core      *entities.Core
+	Miners    []*entities.Miner
+	Numbers   []*entities.Number
+	Buildings []entities.Entity
 }
 
 func NewWorld() *World {
 	return &World{}
 }
 
-func (w *World) Update() {
-
-}
+func (w *World) Update() {}
 
 func (w *World) Draw(screen *ebiten.Image, camera *Camera) {
 	w.drawGrid(screen, camera)
@@ -29,7 +32,6 @@ func (w *World) Draw(screen *ebiten.Image, camera *Camera) {
 }
 
 func (w *World) drawGrid(screen *ebiten.Image, camera *Camera) {
-
 	startX := int(camera.X-float64(camera.screenWidth)/(2*camera.Zoom*tileSize)) - 1
 	endX := int(camera.X+float64(camera.screenWidth)/(2*camera.Zoom*tileSize)) + 1
 	startY := int(camera.Y-float64(camera.screenHeight)/(2*camera.Zoom*tileSize)) - 1
