@@ -43,7 +43,37 @@ func (w *World) addMiner(x, y float64) {
 	w.Buildings = append(w.Buildings, miner)
 }
 
-func (w *World) Update() {}
+func (w *World) Update() {
+	for _, building := range w.Buildings {
+		building.Update()
+	}
+
+	for _, miner := range w.Miners {
+		if number := miner.GetMinedNumber(); number != nil {
+			w.Numbers = append(w.Numbers, number)
+		}
+	}
+
+	for i := len(w.Numbers) - 1; i >= 0; i-- {
+		number := w.Numbers[i]
+		number.Update()
+
+		if w.Core.CanCollect(number) {
+			coreX := w.Core.X + w.Core.Width/2
+			coreY := w.Core.Y + w.Core.Height/2
+			number.MoveTo(coreX, coreY, 2.0)
+
+			// Check if number reached core center
+			dx := number.X - coreX
+			dy := number.Y - coreY
+			distance := dx*dx + dy*dy
+			if distance < 100 {
+				w.Core.CollectNumber(number)
+				w.Numbers = append(w.Numbers[:i], w.Numbers[i+1:]...)
+			}
+		}
+	}
+}
 
 func (w *World) Draw(screen *ebiten.Image, camera *Camera) {
 	w.drawGrid(screen, camera)
