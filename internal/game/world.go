@@ -4,7 +4,7 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const (
@@ -41,8 +41,8 @@ func (w *World) drawGrid(screen *ebiten.Image, camera *Camera) {
 		screenX2, screenY2 := camera.WorldToScreen(worldX, float64(endY*tileSize))
 
 		if camera.Zoom > 0.5 {
-			ebitenutil.DrawLine(screen, screenX1, screenY1, screenX2, screenY2,
-				color.RGBA{64, 64, 64, 255})
+			vector.StrokeLine(screen, float32(screenX1), float32(screenY1), float32(screenX2), float32(screenY2),
+				1, color.RGBA{64, 64, 64, 255}, false)
 		}
 	}
 
@@ -52,8 +52,8 @@ func (w *World) drawGrid(screen *ebiten.Image, camera *Camera) {
 		screenX2, screenY2 := camera.WorldToScreen(float64(endX*tileSize), worldY)
 
 		if camera.Zoom > 0.5 {
-			ebitenutil.DrawLine(screen, screenX1, screenY1, screenX2, screenY2,
-				color.RGBA{64, 64, 64, 255})
+			vector.StrokeLine(screen, float32(screenX1), float32(screenY1), float32(screenX2), float32(screenY2),
+				1, color.RGBA{64, 64, 64, 255}, false)
 		}
 	}
 }
@@ -61,8 +61,8 @@ func (w *World) drawGrid(screen *ebiten.Image, camera *Camera) {
 func (w *World) drawOrigin(screen *ebiten.Image, camera *Camera) {
 	screenX, screenY := camera.WorldToScreen(0, 0)
 
-	ebitenutil.DrawLine(screen, screenX-10, screenY, screenX+10, screenY,
-		color.RGBA{255, 0, 0, 255})
-	ebitenutil.DrawLine(screen, screenX, screenY-10, screenX, screenY+10,
-		color.RGBA{255, 0, 0, 255})
+	vector.StrokeLine(screen, float32(screenX-10), float32(screenY), float32(screenX+10), float32(screenY),
+		1, color.RGBA{255, 0, 0, 255}, false)
+	vector.StrokeLine(screen, float32(screenX), float32(screenY-10), float32(screenX), float32(screenY+10),
+		1, color.RGBA{255, 0, 0, 255}, false)
 }
