@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 
+	"github.com/Sanjar0126/math-factory/internal/fonts"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
@@ -20,6 +21,7 @@ func NewGame(screenWidth, screenHeight int) *Game {
 	world := NewWorld()
 	camera := NewCamera(screenWidth, screenHeight)
 	input := NewInputManager()
+	fonts.InitFonts()
 
 	return &Game{
 		screenWidth:  screenWidth,

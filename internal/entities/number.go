@@ -5,10 +5,10 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/Sanjar0126/math-factory/internal/fonts"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
-	"golang.org/x/image/font/basicfont"
 )
 
 type NumberType int
@@ -76,8 +76,10 @@ func (n *Number) Draw(screen *ebiten.Image, offsetX, offsetY float64, zoom float
 	vector.StrokeCircle(screen, screenX+size/2, screenY+size/2, size/2, 1, borderColor, false)
 
 	if zoom > 0.8 {
-		text.Draw(screen, fmt.Sprintf("%d", n.Value), basicfont.Face7x13,
-			int(screenX+2), int(screenY+12), color.White)
+		opts := &text.DrawOptions{}
+		opts.GeoM.Translate(float64(int(screenX+2)), float64(int(screenY+12)))
+		opts.ColorScale.ScaleWithColor(color.White)
+		text.Draw(screen, fmt.Sprintf("%d", n.Value), fonts.MplusNormalFont, opts)
 	}
 }
 
