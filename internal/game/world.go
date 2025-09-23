@@ -21,7 +21,26 @@ type World struct {
 }
 
 func NewWorld() *World {
-	return &World{}
+	world := &World{
+		Miners:    make([]*entities.Miner, 0),
+		Numbers:   make([]*entities.Number, 0),
+		Buildings: make([]entities.Entity, 0),
+	}
+
+	world.Core = entities.NewCore(0, 0)
+	world.Buildings = append(world.Buildings, world.Core)
+
+	world.addMiner(100, 100)
+	world.addMiner(-150, 80)
+	world.addMiner(200, -120)
+
+	return world
+}
+
+func (w *World) addMiner(x, y float64) {
+	miner := entities.NewMiner(x, y)
+	w.Miners = append(w.Miners, miner)
+	w.Buildings = append(w.Buildings, miner)
 }
 
 func (w *World) Update() {}
