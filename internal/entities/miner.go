@@ -1,141 +1,154 @@
 package entities
 
 import (
-    "image/color"
-    "math"
-    "math/rand"
+	"image/color"
 
-    "github.com/hajimehoshi/ebiten/v2"
-    "github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type Miner struct {
-    BaseEntity
-    MiningTimer    int
-    MiningInterval int 
-    Output         chan *Number
-    MiningRange    int 
+	Position       GridPosition
+	Deposit        *NumberDeposit
+	MiningTimer    int
+	MiningInterval int
+	OutputDir      Direction
+	OutputBuffer   []*Number
+	MaxBuffer      int
 }
 
-func NewMiner(x, y float64) *Miner {
-    return &Miner{
-        BaseEntity: BaseEntity{
-            X:      x,
-            Y:      y,
-            Width:  32,
-            Height: 32,
-        },
-        MiningTimer:    0,
-        MiningInterval: 180, // 3 seconds at 60 FPS
-        Output:         make(chan *Number, 10),
-        MiningRange:    determineMiningRange(x, y),
-    }
+type Direction int
+
+const (
+	DirectionUp Direction = iota
+	DirectionRight
+	DirectionDown
+	DirectionLeft
+)
+
+func NewMiner(gridX, gridY int, deposit *NumberDeposit, outputDir Direction) *Miner {
+	return &Miner{
+		Position:       GridPosition{X: gridX, Y: gridY},
+		Deposit:        deposit,
+		MiningTimer:    0,
+		MiningInterval: 120, // 2 seconds at 60 FPS
+		OutputDir:      outputDir,
+		OutputBuffer:   make([]*Number, 0),
+		MaxBuffer:      5,
+	}
 }
 
 func (m *Miner) Update() {
-    m.MiningTimer++
-    
-    if m.MiningTimer >= m.MiningInterval {
-        m.MiningTimer = 0
-        m.mine()
-    }
+	if m.Deposit == nil || !m.Deposit.CanBeMined() {
+		return
+	}
+
+	if len(m.OutputBuffer) >= m.MaxBuffer {
+		return
+	}
+
+	m.MiningTimer++
+	if m.MiningTimer >= m.MiningInterval {
+		m.MiningTimer = 0
+		m.mine()
+	}
 }
 
-func (m *Miner) Draw(screen *ebiten.Image, offsetX, offsetY float64, zoom float64) {
-    screenX := float32((m.X + offsetX) * zoom)
-    screenY := float32((m.Y + offsetY) * zoom)
-    size := float32(m.Width * zoom)
-    
-    if size < 4 {
-        return
-    }
-    
-    baseColor := color.RGBA{150, 100, 50, 255}
-    vector.DrawFilledRect(screen, screenX, screenY, size, size, baseColor, false)
-    
-    drillColor := color.RGBA{100, 100, 100, 255}
-    drillSize := size * 0.6
-    drillX := screenX + (size-drillSize)/2
-    drillY := screenY + (size-drillSize)/2
-    vector.DrawFilledCircle(screen, drillX+drillSize/2, drillY+drillSize/2, 
-        drillSize/2, drillColor, false)
-    
-    progress := float32(m.MiningTimer) / float32(m.MiningInterval)
-    if progress > 0.8 { 
-        animColor := color.RGBA{255, 255, 100, 200}
-        animRadius := size * 0.3 * (1 + (progress-0.8)*5)
-        vector.StrokeCircle(screen, screenX+size/2, screenY+size/2, 
-            animRadius, 2, animColor, false)
-    }
-    
-    borderColor := color.RGBA{200, 150, 100, 255}
-    vector.StrokeRect(screen, screenX, screenY, size, size, 2, borderColor, false)
+func (m *Miner) Draw(screen *ebiten.Image, camera Camera) {
+	worldX, worldY := m.Position.ToWorldPos()
+	screenX, screenY := camera.WorldToScreen(worldX, worldY)
+	zoom := camera.GetZoom()
+	size := float32(TileSize) * float32(zoom)
+
+	if size < 4 {
+		return
+	}
+
+	baseColor := color.RGBA{120, 80, 40, 255}
+	vector.DrawFilledRect(screen, float32(screenX), float32(screenY),
+		size, size, baseColor, false)
+
+	drillSize := size * 0.4
+	drillX := float32(screenX) + (size-drillSize)/2
+	drillY := float32(screenY) + (size-drillSize)/2
+	drillColor := color.RGBA{80, 80, 80, 255}
+	vector.DrawFilledRect(screen, drillX, drillY, drillSize, drillSize, drillColor, false)
+
+	m.drawOutputIndicator(screen, float32(screenX), float32(screenY), size)
+
+	progress := float32(m.MiningTimer) / float32(m.MiningInterval)
+	if progress > 0 {
+		progressColor := color.RGBA{255, 255, 100, 200}
+		progressHeight := size * 0.1
+		progressWidth := size * progress
+		vector.DrawFilledRect(screen, float32(screenX), float32(screenY),
+			progressWidth, progressHeight, progressColor, false)
+	}
+
+	borderColor := color.RGBA{160, 120, 80, 255}
+	vector.StrokeRect(screen, float32(screenX), float32(screenY),
+		size, size, 2, borderColor, false)
+}
+
+func (m *Miner) drawOutputIndicator(screen *ebiten.Image, x, y, size float32) {
+	centerX := x + size/2
+	centerY := y + size/2
+	arrowSize := size * 0.15
+
+	indicatorColor := color.RGBA{255, 200, 100, 255}
+
+	switch m.OutputDir {
+	case DirectionUp:
+		vector.DrawFilledRect(screen, centerX-arrowSize/2, y, arrowSize, arrowSize, indicatorColor, false)
+	case DirectionRight:
+		vector.DrawFilledRect(screen, x+size-arrowSize, centerY-arrowSize/2, arrowSize, arrowSize, indicatorColor, false)
+	case DirectionDown:
+		vector.DrawFilledRect(screen, centerX-arrowSize/2, y+size-arrowSize, arrowSize, arrowSize, indicatorColor, false)
+	case DirectionLeft:
+		vector.DrawFilledRect(screen, x, centerY-arrowSize/2, arrowSize, arrowSize, indicatorColor, false)
+	}
 }
 
 func (m *Miner) mine() {
-    distanceFromOrigin := math.Sqrt(m.X*m.X + m.Y*m.Y) / 100 
-    
-    var value int
-    if distanceFromOrigin < 2 {
-        value = rand.Intn(10) + 1
-    } else if distanceFromOrigin < 5 {
-        value = rand.Intn(100) + 1
-    } else {
-        if rand.Float64() < 0.7 {
-            value = generatePrimeInRange(10, int(distanceFromOrigin*50))
-        } else {
-            value = rand.Intn(int(distanceFromOrigin*20)) + 10
-        }
-    }
-    
-    // Create number at miner location with slight offset
-    offsetX := (rand.Float64() - 0.5) * 20
-    offsetY := (rand.Float64() - 0.5) * 20
-    
-    number := NewNumber(m.X+m.Width/2+offsetX, m.Y+m.Height/2+offsetY, value)
-    
-    // Try to send to output channel (non-blocking)
-    select {
-    case m.Output <- number:
-        // Number sent successfully
-    default:
-        // Channel full, drop the number
-    }
+	if value, success := m.Deposit.Mine(); success {
+		worldX, worldY := m.Position.ToWorldPos()
+		number := NewNumber(worldX+TileSize/2, worldY+TileSize/2, value)
+		m.OutputBuffer = append(m.OutputBuffer, number)
+	}
 }
 
-func (m *Miner) GetMinedNumber() *Number {
-    select {
-    case number := <-m.Output:
-        return number
-    default:
-        return nil
-    }
+func (m *Miner) GetOutputPosition() GridPosition {
+	switch m.OutputDir {
+	case DirectionUp:
+		return GridPosition{X: m.Position.X, Y: m.Position.Y - 1}
+	case DirectionRight:
+		return GridPosition{X: m.Position.X + 1, Y: m.Position.Y}
+	case DirectionDown:
+		return GridPosition{X: m.Position.X, Y: m.Position.Y + 1}
+	case DirectionLeft:
+		return GridPosition{X: m.Position.X - 1, Y: m.Position.Y}
+	default:
+		return m.Position
+	}
 }
 
-func determineMiningRange(x, y float64) int {
-    distance := math.Sqrt(x*x + y*y)
-    return int(distance/100) + 1
+func (m *Miner) TryOutputNumber() *Number {
+	if len(m.OutputBuffer) > 0 {
+		number := m.OutputBuffer[0]
+		m.OutputBuffer = m.OutputBuffer[1:]
+		return number
+	}
+	return nil
 }
 
-func generatePrimeInRange(min, max int) int {
-    if min > max || min < 2 {
-        return 2
-    }
-    
-    // Simple approach: generate random numbers and check if prime
-    for attempts := 0; attempts < 100; attempts++ {
-        candidate := rand.Intn(max-min+1) + min
-        if isPrime(candidate) {
-            return candidate
-        }
-    }
-    
-    // Fallback: return next prime after min
-    for candidate := min; candidate <= max; candidate++ {
-        if isPrime(candidate) {
-            return candidate
-        }
-    }
-    
-    return 2 // Ultimate fallback
+func (m *Miner) HasOutputReady() bool {
+	return len(m.OutputBuffer) > 0
+}
+
+func (m *Miner) GetGridPosition() GridPosition {
+	return m.Position
+}
+
+func (m *Miner) GetSize() (int, int) {
+	return 1, 1
 }
