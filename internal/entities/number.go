@@ -20,29 +20,26 @@ const (
 )
 
 type Number struct {
-	BaseEntity
+	X, Y      float64
 	Value     int
 	Type      NumberType
 	VelocityX float64
 	VelocityY float64
 	Color     color.RGBA
 	IsMoving  bool
+	Size      float64
 }
 
 func NewNumber(x, y float64, value int) *Number {
-	num := &Number{
-		BaseEntity: BaseEntity{
-			X:      x,
-			Y:      y,
-			Width:  16,
-			Height: 16,
-		},
+	return &Number{
+		X:        x,
+		Y:        y,
 		Value:    value,
 		Type:     determineNumberType(value),
 		Color:    getNumberColor(value),
 		IsMoving: false,
+		Size:     12,
 	}
-	return num
 }
 
 func (n *Number) Update() {
@@ -61,29 +58,29 @@ func (n *Number) Update() {
 	}
 }
 
-func (n *Number) Draw(screen *ebiten.Image, offsetX, offsetY float64, zoom float64) {
-	screenX := float32((n.X + offsetX) * zoom)
-	screenY := float32((n.Y + offsetY) * zoom)
-	size := float32(n.Width * zoom)
+func (n *Number) Draw(screen *ebiten.Image, camera Camera) {
+	screenX, screenY := camera.WorldToScreen(n.X, n.Y)
+	zoom := camera.GetZoom()
+	size := float32(n.Size * zoom)
 
 	if size < 2 {
 		return
 	}
 
-	vector.DrawFilledCircle(screen, screenX+size/2, screenY+size/2, size/2, n.Color, false)
+	vector.DrawFilledCircle(screen, float32(screenX), float32(screenY), size/2, n.Color, false)
 
-	borderColor := color.RGBA{255, 255, 255, 100}
-	vector.StrokeCircle(screen, screenX+size/2, screenY+size/2, size/2, 1, borderColor, false)
+	borderColor := color.RGBA{255, 255, 255, 150}
+	vector.StrokeCircle(screen, float32(screenX), float32(screenY), size/2, 1, borderColor, false)
 
-	if zoom > 0.8 {
+	if zoom > 0.7 {
 		opts := &text.DrawOptions{}
-		opts.GeoM.Translate(float64(int(screenX+2)), float64(int(screenY+12)))
+		opts.GeoM.Translate(float64(screenX-6), float64(screenY+4))
 		opts.ColorScale.ScaleWithColor(color.White)
 		text.Draw(screen, fmt.Sprintf("%d", n.Value), fonts.MplusNormalFont, opts)
 	}
 }
 
-func (n *Number) MoveTo(targetX, targetY float64, speed float64) {
+func (n *Number) MoveTo(targetX, targetY, speed float64) {
 	dx := targetX - n.X
 	dy := targetY - n.Y
 	distance := math.Sqrt(dx*dx + dy*dy)
@@ -99,11 +96,9 @@ func determineNumberType(value int) NumberType {
 	if value < 2 {
 		return TypeBasic
 	}
-
 	if isPrime(value) {
 		return TypePrime
 	}
-
 	return TypeComposite
 }
 
@@ -117,7 +112,6 @@ func isPrime(n int) bool {
 	if n%2 == 0 {
 		return false
 	}
-
 	for i := 3; i*i <= n; i += 2 {
 		if n%i == 0 {
 			return false
