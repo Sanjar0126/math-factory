@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"fmt"
 	"image/color"
 
 	"github.com/Sanjar0126/math-factory/internal/fonts"
@@ -79,7 +80,7 @@ func (d *NumberDeposit) Draw(screen *ebiten.Image, camera Camera) {
 		opts := &text.DrawOptions{}
 		opts.GeoM.Translate(float64(screenX+4), float64(screenY+20))
 		opts.ColorScale.ScaleWithColor(textColor)
-		text.Draw(screen, "∞", fonts.MplusNormalFont, opts)
+		text.Draw(screen, fmt.Sprintf("%d", d.NumberValue), fonts.MplusNormalFont, opts)
 	}
 
 	if d.IsInfinite && zoom > 0.8 {
