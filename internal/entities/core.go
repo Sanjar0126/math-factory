@@ -9,70 +9,120 @@ import (
 )
 
 type Core struct {
-	BaseEntity
+	Position        GridPosition
 	StoredNumbers   []int
-	CollectionRange float64
-	Numbers         []*Number
+	InputPositions  []GridPosition
+	ProcessingQueue []*Number
 }
 
-func NewCore(x, y float64) *Core {
+func NewCore(gridX, gridY int) *Core {
+	pos := GridPosition{X: gridX, Y: gridY}
+
+	// Core is 2x2, so it accepts inputs from all sides
+	inputPositions := []GridPosition{
+		{X: gridX - 1, Y: gridY},     // Left side, top
+		{X: gridX - 1, Y: gridY + 1}, // Left side, bottom
+		{X: gridX + 2, Y: gridY},     // Right side, top
+		{X: gridX + 2, Y: gridY + 1}, // Right side, bottom
+		{X: gridX, Y: gridY - 1},     // Top side, left
+		{X: gridX + 1, Y: gridY - 1}, // Top side, right
+		{X: gridX, Y: gridY + 2},     // Bottom side, left
+		{X: gridX + 1, Y: gridY + 2}, // Bottom side, right
+	}
+
 	return &Core{
-		BaseEntity: BaseEntity{
-			X:      x,
-			Y:      y,
-			Width:  64,
-			Height: 64,
-		},
+		Position:        pos,
 		StoredNumbers:   make([]int, 0),
-		CollectionRange: 80,
-		Numbers:         make([]*Number, 0),
+		InputPositions:  inputPositions,
+		ProcessingQueue: make([]*Number, 0),
 	}
 }
 
-func (c *Core) Update() {}
+func (c *Core) Update() {
+	for i := len(c.ProcessingQueue) - 1; i >= 0; i-- {
+		number := c.ProcessingQueue[i]
 
-func (c *Core) Draw(screen *ebiten.Image, offsetX, offsetY float64, zoom float64) {
-	screenX := float32((c.X + offsetX) * zoom)
-	screenY := float32((c.Y + offsetY) * zoom)
-	size := float32(c.Width * zoom)
+		coreWorldX, coreWorldY := c.Position.ToWorldPos()
+		centerX := coreWorldX + TileSize
+		centerY := coreWorldY + TileSize
 
-	if size < 4 {
+		number.MoveTo(centerX, centerY, 3.0)
+		number.Update()
+
+		dx := number.X - centerX
+		dy := number.Y - centerY
+		distance := math.Sqrt(dx*dx + dy*dy)
+
+		if distance < 10 {
+			c.StoredNumbers = append(c.StoredNumbers, number.Value)
+			c.ProcessingQueue = append(c.ProcessingQueue[:i], c.ProcessingQueue[i+1:]...)
+		}
+	}
+}
+
+func (c *Core) Draw(screen *ebiten.Image, camera Camera) {
+	worldX, worldY := c.Position.ToWorldPos()
+	screenX, screenY := camera.WorldToScreen(worldX, worldY)
+	zoom := camera.GetZoom()
+	size := float32(TileSize*2) * float32(zoom) // 2x2 core
+
+	if size < 8 {
 		return
 	}
 
-	centerX := screenX + size/2
-	centerY := screenY + size/2
-	radius := size / 2
+	coreColor := color.RGBA{60, 100, 180, 255}
+	vector.DrawFilledRect(screen, float32(screenX), float32(screenY),
+		size, size, coreColor, false)
 
-	coreColor := color.RGBA{80, 120, 200, 255}
-	vector.DrawFilledCircle(screen, centerX, centerY, radius, coreColor, false)
+	innerSize := size * 0.7
+	innerOffset := (size - innerSize) / 2
+	innerColor := color.RGBA{100, 140, 220, 255}
+	vector.DrawFilledRect(screen, float32(screenX)+innerOffset, float32(screenY)+innerOffset,
+		innerSize, innerSize, innerColor, false)
 
-	innerColor := color.RGBA{120, 160, 255, 255}
-	vector.DrawFilledCircle(screen, centerX, centerY, radius*0.6, innerColor, false)
+	time := float32(ebiten.TPS()) * 0.05
+	pulse := float32(math.Sin(float64(time)))*0.1 + 1.0
+	energySize := innerSize * pulse
+	energyOffset := (size - energySize) / 2
+	energyColor := color.RGBA{150, 180, 255, 100}
+	vector.StrokeRect(screen, float32(screenX)+energyOffset, float32(screenY)+energyOffset,
+		energySize, energySize, 2, energyColor, false)
 
-	if zoom > 0.5 {
-		rangeColor := color.RGBA{80, 120, 200, 50}
-		rangeRadius := float32(c.CollectionRange * zoom)
-		vector.StrokeCircle(screen, centerX, centerY, rangeRadius, 2, rangeColor, false)
+	borderColor := color.RGBA{100, 140, 220, 255}
+	vector.StrokeRect(screen, float32(screenX), float32(screenY),
+		size, size, 3, borderColor, false)
+
+	for _, number := range c.ProcessingQueue {
+		number.Draw(screen, camera)
 	}
-
-	pulse := float32(math.Sin(float64(ebiten.TPS())*0.1))*0.2 + 1.0
-	energyColor := color.RGBA{200, 200, 255, 100}
-	vector.StrokeCircle(screen, centerX, centerY, radius*pulse, 1, energyColor, false)
 }
 
-func (c *Core) CanCollect(number *Number) bool {
-	dx := number.X - (c.X + c.Width/2)
-	dy := number.Y - (c.Y + c.Height/2)
-	distance := math.Sqrt(dx*dx + dy*dy)
-	return distance <= c.CollectionRange
+func (c *Core) CanAcceptInput(fromPos GridPosition) bool {
+	for _, inputPos := range c.InputPositions {
+		if inputPos.X == fromPos.X && inputPos.Y == fromPos.Y {
+			return true
+		}
+	}
+	return false
 }
 
-func (c *Core) CollectNumber(number *Number) {
-	c.StoredNumbers = append(c.StoredNumbers, number.Value)
-	c.Numbers = append(c.Numbers, number)
+func (c *Core) AcceptNumber(number *Number) {
+	c.ProcessingQueue = append(c.ProcessingQueue, number)
+}
+
+func (c *Core) GetGridPosition() GridPosition {
+	return c.Position
+}
+
+func (c *Core) GetSize() (int, int) {
+	return 2, 2
 }
 
 func (c *Core) GetStoredCount() int {
 	return len(c.StoredNumbers)
+}
+
+func (c *Core) OccupiesPosition(pos GridPosition) bool {
+	return pos.X >= c.Position.X && pos.X < c.Position.X+2 &&
+		pos.Y >= c.Position.Y && pos.Y < c.Position.Y+2
 }
