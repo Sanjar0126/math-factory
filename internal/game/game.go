@@ -56,10 +56,14 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func (g *Game) drawUI(screen *ebiten.Image) {
 	debugStr := fmt.Sprintf(
-		"Math Factory v0.1\n"+
-			"WASD: Move camera\n"+
-			"Camera: (%.1f, %.1f)\n"+
-			"Zoom: %.2f",
-		g.camera.X, g.camera.Y, g.camera.Zoom)
+		"Math Factory v0.2\n"+
+			"WASD: Move camera, Mouse wheel: Zoom\n"+
+			"Camera: (%.1f, %.1f) Zoom: %.2f\n"+
+			"Numbers in world: %d\n"+
+			"Numbers collected: %d\n"+
+			"Miners: %d",
+		g.camera.X, g.camera.Y, g.camera.Zoom,
+		g.world.GetNumberCount(),
+		g.world.GetCoreStoredCount(), len(g.world.Miners))
 	ebitenutil.DebugPrint(screen, debugStr)
 }
