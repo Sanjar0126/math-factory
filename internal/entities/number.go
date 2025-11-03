@@ -58,7 +58,8 @@ func (n *Number) Update() {
 	}
 }
 
-func (n *Number) Draw(screen *ebiten.Image, camera Camera) {
+// Update just the Draw method signature:
+func (n *Number) Draw(screen *ebiten.Image, camera CameraInterface) {
 	screenX, screenY := camera.WorldToScreen(n.X, n.Y)
 	zoom := camera.GetZoom()
 	size := float32(n.Size * zoom)
@@ -67,14 +68,17 @@ func (n *Number) Draw(screen *ebiten.Image, camera Camera) {
 		return
 	}
 
+	// Draw circle
 	vector.DrawFilledCircle(screen, float32(screenX), float32(screenY), size/2, n.Color, false)
 
+	// Draw border
 	borderColor := color.RGBA{255, 255, 255, 150}
 	vector.StrokeCircle(screen, float32(screenX), float32(screenY), size/2, 1, borderColor, false)
 
+	// Draw number if zoom is sufficient
 	if zoom > 0.7 {
 		opts := &text.DrawOptions{}
-		opts.GeoM.Translate(float64(screenX-6), float64(screenY+4))
+		opts.GeoM.Translate(screenX-6, screenY+4)
 		opts.ColorScale.ScaleWithColor(color.White)
 		text.Draw(screen, fmt.Sprintf("%d", n.Value), fonts.MplusNormalFont, opts)
 	}
@@ -90,6 +94,10 @@ func (n *Number) MoveTo(targetX, targetY, speed float64) {
 		n.VelocityY = (dy / distance) * speed
 		n.IsMoving = true
 	}
+}
+
+func IsPrime(n int) bool {
+	return isPrime(n)
 }
 
 func determineNumberType(value int) NumberType {

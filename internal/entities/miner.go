@@ -54,28 +54,33 @@ func (m *Miner) Update() {
 	}
 }
 
-func (m *Miner) Draw(screen *ebiten.Image, camera Camera) {
+func (m *Miner) Draw(screen *ebiten.Image, camera CameraInterface) {
 	worldX, worldY := m.Position.ToWorldPos()
 	screenX, screenY := camera.WorldToScreen(worldX, worldY)
 	zoom := camera.GetZoom()
 	size := float32(TileSize) * float32(zoom)
 
+	// Rest remains the same...
 	if size < 4 {
 		return
 	}
 
+	// Draw miner base
 	baseColor := color.RGBA{120, 80, 40, 255}
 	vector.DrawFilledRect(screen, float32(screenX), float32(screenY),
 		size, size, baseColor, false)
 
+	// Draw drill in center
 	drillSize := size * 0.4
 	drillX := float32(screenX) + (size-drillSize)/2
 	drillY := float32(screenY) + (size-drillSize)/2
 	drillColor := color.RGBA{80, 80, 80, 255}
 	vector.DrawFilledRect(screen, drillX, drillY, drillSize, drillSize, drillColor, false)
 
+	// Draw output direction indicator
 	m.drawOutputIndicator(screen, float32(screenX), float32(screenY), size)
 
+	// Draw mining progress
 	progress := float32(m.MiningTimer) / float32(m.MiningInterval)
 	if progress > 0 {
 		progressColor := color.RGBA{255, 255, 100, 200}
@@ -85,6 +90,7 @@ func (m *Miner) Draw(screen *ebiten.Image, camera Camera) {
 			progressWidth, progressHeight, progressColor, false)
 	}
 
+	// Draw border
 	borderColor := color.RGBA{160, 120, 80, 255}
 	vector.StrokeRect(screen, float32(screenX), float32(screenY),
 		size, size, 2, borderColor, false)

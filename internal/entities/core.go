@@ -60,41 +60,48 @@ func (c *Core) Update() {
 	}
 }
 
-func (c *Core) Draw(screen *ebiten.Image, camera Camera) {
-	worldX, worldY := c.Position.ToWorldPos()
-	screenX, screenY := camera.WorldToScreen(worldX, worldY)
-	zoom := camera.GetZoom()
-	size := float32(TileSize*2) * float32(zoom) // 2x2 core
+// Update just the Draw method signature:
+func (c *Core) Draw(screen *ebiten.Image, camera CameraInterface) {
+    worldX, worldY := c.Position.ToWorldPos()
+    screenX, screenY := camera.WorldToScreen(worldX, worldY)
+    zoom := camera.GetZoom()
+    size := float32(TileSize*2) * float32(zoom) // 2x2 core
 
-	if size < 8 {
-		return
-	}
+    // Rest remains the same...
+    if size < 8 {
+        return
+    }
 
-	coreColor := color.RGBA{60, 100, 180, 255}
-	vector.DrawFilledRect(screen, float32(screenX), float32(screenY),
-		size, size, coreColor, false)
+    // Draw main core structure
+    coreColor := color.RGBA{60, 100, 180, 255}
+    vector.DrawFilledRect(screen, float32(screenX), float32(screenY), 
+        size, size, coreColor, false)
 
-	innerSize := size * 0.7
-	innerOffset := (size - innerSize) / 2
-	innerColor := color.RGBA{100, 140, 220, 255}
-	vector.DrawFilledRect(screen, float32(screenX)+innerOffset, float32(screenY)+innerOffset,
-		innerSize, innerSize, innerColor, false)
+    // Draw inner core
+    innerSize := size * 0.7
+    innerOffset := (size - innerSize) / 2
+    innerColor := color.RGBA{100, 140, 220, 255}
+    vector.DrawFilledRect(screen, float32(screenX)+innerOffset, float32(screenY)+innerOffset, 
+        innerSize, innerSize, innerColor, false)
 
-	time := float32(ebiten.TPS()) * 0.05
-	pulse := float32(math.Sin(float64(time)))*0.1 + 1.0
-	energySize := innerSize * pulse
-	energyOffset := (size - energySize) / 2
-	energyColor := color.RGBA{150, 180, 255, 100}
-	vector.StrokeRect(screen, float32(screenX)+energyOffset, float32(screenY)+energyOffset,
-		energySize, energySize, 2, energyColor, false)
+    // Draw energy animation
+    time := float32(ebiten.TPS()) * 0.05
+    pulse := float32(math.Sin(float64(time))) * 0.1 + 1.0
+    energySize := innerSize * pulse
+    energyOffset := (size - energySize) / 2
+    energyColor := color.RGBA{150, 180, 255, 100}
+    vector.StrokeRect(screen, float32(screenX)+energyOffset, float32(screenY)+energyOffset, 
+        energySize, energySize, 2, energyColor, false)
 
-	borderColor := color.RGBA{100, 140, 220, 255}
-	vector.StrokeRect(screen, float32(screenX), float32(screenY),
-		size, size, 3, borderColor, false)
+    // Draw border
+    borderColor := color.RGBA{100, 140, 220, 255}
+    vector.StrokeRect(screen, float32(screenX), float32(screenY), 
+        size, size, 3, borderColor, false)
 
-	for _, number := range c.ProcessingQueue {
-		number.Draw(screen, camera)
-	}
+    // Draw processing numbers
+    for _, number := range c.ProcessingQueue {
+        number.Draw(screen, camera)
+    }
 }
 
 func (c *Core) CanAcceptInput(fromPos GridPosition) bool {

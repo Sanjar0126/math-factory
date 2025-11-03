@@ -10,19 +10,21 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
+// NumberDeposit represents a deposit of numbers that can be mined
 type NumberDeposit struct {
 	Position     GridPosition
 	NumberValue  int
 	IsInfinite   bool
 	RemainingOre int
 	DepositType  NumberType
-	IsMined      bool // Has a miner placed on it
+	IsMined      bool
 }
 
+// NewNumberDeposit creates a new number deposit
 func NewNumberDeposit(gridX, gridY int, value int, infinite bool) *NumberDeposit {
 	remaining := 1000
 	if infinite {
-		remaining = -1 // -1 means infinite
+		remaining = -1
 	}
 
 	return &NumberDeposit{
@@ -35,9 +37,13 @@ func NewNumberDeposit(gridX, gridY int, value int, infinite bool) *NumberDeposit
 	}
 }
 
-func (d *NumberDeposit) Update() {}
+// Update updates the deposit state
+func (d *NumberDeposit) Update() {
+	// Deposits don't need to update themselves
+}
 
-func (d *NumberDeposit) Draw(screen *ebiten.Image, camera Camera) {
+// Draw renders the deposit
+func (d *NumberDeposit) Draw(screen *ebiten.Image, camera CameraInterface) {
 	worldX, worldY := d.Position.ToWorldPos()
 	screenX, screenY := camera.WorldToScreen(worldX, worldY)
 	zoom := camera.GetZoom()
@@ -47,30 +53,34 @@ func (d *NumberDeposit) Draw(screen *ebiten.Image, camera Camera) {
 		return
 	}
 
+	// Choose colors based on number type and mining status
 	var bgColor, borderColor color.RGBA
 	if d.IsMined {
-		bgColor = color.RGBA{100, 100, 100, 200} // Darker when mined
+		bgColor = color.RGBA{100, 100, 100, 200}
 		borderColor = color.RGBA{150, 150, 150, 255}
 	} else {
 		switch d.DepositType {
 		case TypePrime:
-			bgColor = color.RGBA{50, 150, 50, 255} // Dark green
+			bgColor = color.RGBA{50, 150, 50, 255}
 			borderColor = color.RGBA{100, 255, 100, 255}
 		case TypeComposite:
-			bgColor = color.RGBA{150, 80, 50, 255} // Dark orange
+			bgColor = color.RGBA{150, 80, 50, 255}
 			borderColor = color.RGBA{255, 150, 100, 255}
 		default:
-			bgColor = color.RGBA{50, 50, 150, 255} // Dark blue
+			bgColor = color.RGBA{50, 50, 150, 255}
 			borderColor = color.RGBA{150, 150, 255, 255}
 		}
 	}
 
+	// Draw deposit background
 	vector.DrawFilledRect(screen, float32(screenX), float32(screenY),
 		size, size, bgColor, false)
 
+	// Draw border
 	vector.StrokeRect(screen, float32(screenX), float32(screenY),
 		size, size, 2, borderColor, false)
 
+	// Draw number if zoom is sufficient
 	if zoom > 0.6 {
 		textColor := color.RGBA{255, 255, 255, 1}
 		if d.IsMined {
@@ -78,19 +88,21 @@ func (d *NumberDeposit) Draw(screen *ebiten.Image, camera Camera) {
 		}
 
 		opts := &text.DrawOptions{}
-		opts.GeoM.Translate(float64(screenX+4), float64(screenY+20))
+		opts.GeoM.Translate(screenX+4, screenY+20)
 		opts.ColorScale.ScaleWithColor(textColor)
 		text.Draw(screen, fmt.Sprintf("%d", d.NumberValue), fonts.MplusNormalFont, opts)
 	}
 
+	// Draw infinite symbol if infinite deposit
 	if d.IsInfinite && zoom > 0.8 {
 		opts := &text.DrawOptions{}
-		opts.GeoM.Translate(float64(float32(screenX)+size-12), float64(screenY+12))
+		opts.GeoM.Translate(screenX+float64(size)-12, screenY+12)
 		opts.ColorScale.ScaleWithColor(color.RGBA{255, 255, 0, 255})
 		text.Draw(screen, "∞", fonts.MplusNormalFont, opts)
 	}
 }
 
+// Rest of methods...
 func (d *NumberDeposit) GetGridPosition() GridPosition {
 	return d.Position
 }
